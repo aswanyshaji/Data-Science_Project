@@ -1,20 +1,9 @@
-# AI-Powered Automated Meeting Minute Generation and Intelligent Search System
+# AI-Meeting Minute Assistant - AI-Powered Automated Meeting Minute Generation and Intelligent Search System
 
 ## Overview
-This project automates the creation of meeting minutes from audio or video recordings and provides a chatbot-based search system for easy retrieval of information. It uses advanced AI models to transcribe and summarize meeting content, making documentation more efficient and accurate.
+In today's fast-paced business environment, effective communication and efficient information management are critical for organizational success. Meetings are central to decision-making processes, project planning, and overall organizational efficiency. However, manually taking and organizing meeting minutes can be time-consuming and prone to errors. To address these challenges, this project automate the generation of meeting minutes from audio or video recordings. It also features an intelligent search system that allows users to retrieve specific information from stored meeting minutes using a chatbot interface.
+## Application
+This application is designed to be used by organizations and businesses to automate their meeting documentation process. The application is particularly useful in scenarios where accurate, timely, and well-organized meeting records are essential, such as in corporate environments, governmental agencies, and academic institutions.
 
-## Features
-- **Automatic Minute Generation**: Converts meeting recordings into structured minutes.
-- **Intelligent Search**: Allows users to quickly find specific information in stored minutes using a chatbot interface.
-- **Research on Summarization**: Compares different text summarization techniques to optimize minute generation.
-
-## Files
-- **`main.py`**: Main program integrating all functionalities.
-- **`convert_video_to_audio.py`**: Converts video files to audio.
-- **`preprocess_audio.py`**: Prepares audio for transcription.
-- **`transcript_from_audio.py`**: Generates text transcripts from audio.
-- **`generate_minute.py`**: Creates meeting minutes from transcripts.
-- **`minute_search.py`**: Implements the search functionality.
-- **`minute_fetching_analysis.py`**: Analyzes the accuracy and response time of the bot.
-- **`store_vector_db.py`**: Manages data storage for quick retrieval.
-- **`research_on_text_summaraisation.py`**: Researches different text summarization methods.
+## Requirements
+- The project was initiated by creating a virtual environment using Anaconda to manage dependencies efficiently.  fter setting up the environment, all required packages were installed using the requirements.txt file. This setup ensures an isolated environment for the project, managing dependencies effectively.
