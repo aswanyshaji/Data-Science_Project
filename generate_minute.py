@@ -1,139 +1,142 @@
 import openai
 import os
-from fpdf import FPDF
+from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_PARAGRAPH_ALIGNMENT
 
+# Set your OpenAI API key from environment variable
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def generate_minutes(transcript_path, meeting_date):
     try:
-        with open(transcript_path, "r") as f:
+        with open(transcript_path, "r", encoding="utf-8") as f:
             transcript = f.read()
 
-        def process_transcription(transcription):
-            """Process the entire transcription by dividing it into smaller sections."""
-            sections = split_into_sections(transcription)
-            results = {
-                'abstract_summary': '',
-                'key_points': [],
-                'action_items': [],
-                'sentiment': 'Neutral'  # Placeholder for sentiment
-            }
-            for section in sections:
-                section_results = meeting_minutes(section)
-                results['abstract_summary'] += section_results['abstract_summary'] + '\n\n'
-                results['key_points'].extend(section_results['key_points'])
-                results['action_items'].extend(section_results['action_items'])
-            
-            results['key_points'] = list(dict.fromkeys(results['key_points']))
-            results['action_items'] = list(dict.fromkeys(results['action_items']))
-            return results
-
-        def split_into_sections(text, max_length=4096):
-            words = text.split()
-            sections = []
-            current_section = []
-
-            for word in words:
-                if sum(len(w) for w in current_section) + len(word) < max_length:
-                    current_section.append(word)
-                else:
-                    sections.append(" ".join(current_section))
-                    current_section = [word]
-            if current_section:
-                sections.append(" ".join(current_section))
-            return sections
-
-        def meeting_minutes(transcription):
-            abstract_summary = abstract_summary_extraction(transcription)
-            key_points = key_points_extraction(transcription)
-            action_items = action_item_extraction(transcription)
-            return {
-                'abstract_summary': abstract_summary,
-                'key_points': key_points,
-                'action_items': action_items
-            }
-
-        def abstract_summary_extraction(transcription):
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                temperature=0,
-                messages=[
-                    {"role": "system", "content": "Summarize this text into a concise abstract paragraph."},
-                    {"role": "user", "content": transcription}
-                ]
-            )
-            return response.choices[0].message.content
-
-        def key_points_extraction(transcription):
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                temperature=0,
-                messages=[
-                    {"role": "system", "content": "You are an AI that identifies and lists the main points discussed in a text. Ensure each point is unique, important, and relevant. Do not repeat points across sections."},
-                    {"role": "user", "content": transcription}
-                ]
-            )
-            key_points = response.choices[0].message.content.split('\n')
-            return [point.strip() for point in key_points if point.strip()]
-
-        def action_item_extraction(transcription):
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                temperature=0,
-                messages=[
-                    {"role": "system", "content": "You are an AI that extracts important and actionable items from a text. List only the unique and significant tasks or actions agreed upon in the discussion. If no important tasks are identified, leave it empty. Avoid repeating points across sections."},
-                    {"role": "user", "content": transcription}
-                ]
-            )
-            action_items = response.choices[0].message.content.split('\n')
-            return [item.strip() for item in action_items if item.strip()]
-
         results = process_transcription(transcript)
-        minutes_text = f"Abstract Summary:\n{results['abstract_summary']}\n\nKey Points:\n{'\n'.join(results['key_points'])}\n\nAction Items:\n{'\n'.join(results['action_items'])}"
 
+        # Prepare the text minutes content
+        minutes_text = (
+            f"Date of Meeting: {meeting_date}\n\n"
+            f"Abstract Summary:\n{results['abstract_summary']}\n\n"
+            f"Key Points:\n" + "\n".join(results['key_points']) + "\n\n"
+            f"Action Items:\n" + "\n".join(results['action_items'])
+        )
+
+        # Save the minutes as a text file
         minutes_path = os.path.splitext(transcript_path)[0] + "_minutes.txt"
-        with open(minutes_path, "w") as f:
+        with open(minutes_path, "w", encoding="utf-8") as f:
             f.write(minutes_text)
         
-        # Create PDF with meeting date as the name
-        pdf_path = os.path.join(os.path.dirname(transcript_path), f"{meeting_date}_minutes.pdf")
-        create_pdf(minutes_text, pdf_path, meeting_date)
+        # Create the Word document
+        doc_path = os.path.join(os.path.dirname(transcript_path), f"{meeting_date}_minutes.docx")
+        create_word_doc(results, doc_path, meeting_date)
         
         print("Minutes generation completed.")
-        return minutes_path, pdf_path
+        return minutes_path, doc_path
     except Exception as e:
         print(f"Error in generate_minutes: {str(e)}")
         raise e
 
-class PDF(FPDF):
-    def header(self):
-        pass
+def process_transcription(transcription):
+    abstract_summary = abstract_summary_extraction(transcription)
+    key_points = key_points_extraction(transcription)
+    action_items = action_item_extraction(transcription)
+    return {
+        'abstract_summary': abstract_summary,
+        'key_points': key_points,
+        'action_items': action_items
+    }
 
-    def footer(self):
-        self.set_y(-15)
-        self.set_font("Arial", "I", 8)
-        self.cell(0, 10, f"Meeting Date: {self.meeting_date}", 0, 0, "R")
+def abstract_summary_extraction(transcription):
+    prompt = f"""
+    You are an expert in summarizing meeting transcripts. Please provide a concise, meaningful, and coherent abstract summary of the text below. 
+    Focus on capturing the essence of the discussions, decisions made, and any critical points. Ensure that the summary is well-structured and provides a clear overview of the meeting.
 
-    def chapter_title(self, title):
-        self.set_font("Arial", "B", 12)
-        self.cell(0, 10, title, 0, 1, "L")
-        self.ln(5)
+    Text to summarize:
+    {transcription}
 
-    def chapter_body(self, body):
-        self.set_font("Arial", size=12)
-        self.multi_cell(0, 10, body, align="J")
-        self.ln()
+    Abstract Summary:
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        temperature=0,
+        messages=[
+            {"role": "system", "content": "You are a skilled summarization AI."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return response.choices[0].message.content.strip()
 
-    def add_chapter(self, title, body):
-        self.add_page()
-        self.chapter_title(title)
-        self.chapter_body(body)
+def key_points_extraction(transcription):
+    prompt = f"""
+    You are an expert in extracting key points from meeting transcripts. Identify and list the most important points discussed in the text below. 
+    These should be concise, clear, and relevant. Separate each key point using a bullet point. Avoid using numbering.
 
-def create_pdf(minutes_text, pdf_path, meeting_date):
-    pdf = PDF()
-    pdf.meeting_date = meeting_date  # Pass the meeting date to the PDF class
-    pdf.set_left_margin(10)
-    pdf.set_right_margin(10)
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_chapter("Meeting Minutes", minutes_text)
-    pdf.output(pdf_path)
+    Text:
+    {transcription}
+
+    Key Points:
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        temperature=0,
+        messages=[
+            {"role": "system", "content": "You are a skilled summarization AI."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return [point.strip() for point in response.choices[0].message.content.split('\n') if point.strip()]
+
+def action_item_extraction(transcription):
+    prompt = f"""
+    You are an expert in extracting actionable items from meeting transcripts. Extract and list all actionable items that were agreed upon during the meeting. 
+    Each action item should be clear and specific. Separate each action item with a bullet point. Avoid using numbering.
+
+    Text:
+    {transcription}
+
+    Action Items:
+    """
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        temperature=0,
+        messages=[
+            {"role": "system", "content": "You are a skilled summarization AI."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return [item.strip() for item in response.choices[0].message.content.split('\n') if item.strip()]
+
+def create_word_doc(results, doc_path, meeting_date):
+    doc = Document()
+    
+    # Add the meeting date as a title
+    title = doc.add_paragraph()
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = title.add_run(f"Date of Meeting: {meeting_date}")
+    run.bold = True
+    run.font.size = Pt(16)
+    
+    doc.add_paragraph()  # Add a blank line
+
+    # Add sections to the document
+    doc.add_heading('Abstract Summary', level=1)
+    abstract_paragraph = doc.add_paragraph(results['abstract_summary'])
+    abstract_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
+    
+    doc.add_paragraph()  # Add a blank line
+
+    doc.add_heading('Key Points', level=1)
+    for point in results['key_points']:
+        point_paragraph = doc.add_paragraph(point)
+        point_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
+
+    doc.add_paragraph()  # Add a blank line
+
+    doc.add_heading('Action Items', level=1)
+    for item in results['action_items']:
+        item_paragraph = doc.add_paragraph(item)
+        item_paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
+
+    # Save the document
+    doc.save(doc_path)
