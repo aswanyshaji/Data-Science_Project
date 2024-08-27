@@ -42,5 +42,5 @@ def analyze_qa_data(file_name):
     plt.legend(fontsize=12)
     plt.show()
 
-# Example usage:
+
 analyze_qa_data('qa_data.csv')
