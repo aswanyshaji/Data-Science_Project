@@ -1,4 +1,4 @@
-# AI-Meeting Minute Assistant - AI-Powered Automated Meeting Minute Generation and Intelligent Search System
+# AI-Meeting Minute Assistant - An AI-Powered Automated Meeting Minute Generation and Intelligent Search System
 
 ## Overview
 In today's fast-paced business environment, effective communication and efficient information management are critical for organizational success. Meetings are central to decision-making processes, project planning, and overall organizational efficiency. However, manually taking and organizing meeting minutes can be time-consuming and prone to errors. To address these challenges, this project automate the generation of meeting minutes from audio or video recordings. It also features an intelligent search system that allows users to retrieve specific information from stored meeting minutes using a chatbot interface.
