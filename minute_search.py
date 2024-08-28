@@ -83,7 +83,7 @@ def get_answer(query: str):
     normalized_query = query.lower().strip()
 
     # Define a set of greeting words
-    greetings = {"hi", "hello", "hey", "hai", "greetings", "hola", "howdy"}
+    greetings = {"hi", "hello", "hey", "hai", "greetings"}
 
     # Check if the input is a greeting
     if any(word in normalized_query for word in greetings):
@@ -128,7 +128,7 @@ def extract_date_from_query(query):
     match = re.search(r'\d{2}-\d{2}-\d{4}', query)
     return match.group(0) if match else None
 
-# Example usage
+# The below code is added only for testing the functioanlity of code
 if __name__ == "__main__":
     # Display the welcome message
     print("Hi, I am the Meeting Minute Bot. I can help you retrieve information from any past meeting.")

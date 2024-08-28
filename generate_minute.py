@@ -4,7 +4,7 @@ from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_PARAGRAPH_ALIGNMENT
 
-# Set your OpenAI API key from environment variable
+# Set OpenAI API key from environment variable
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def generate_minutes(transcript_path, meeting_date):

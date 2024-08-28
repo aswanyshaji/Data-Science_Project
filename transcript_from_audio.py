@@ -1,8 +1,8 @@
 import openai
-from pydub import AudioSegment
+from pydub import AudioSegment #Pydub is a library for manipulating audio files.
 import os
 
-# Set your OpenAI API key
+#Set Open AI Key
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def generate_transcript(audio_path):
@@ -10,16 +10,15 @@ def generate_transcript(audio_path):
         # Load audio file
         audio = AudioSegment.from_file(audio_path, format="wav")
 
-        # Define chunk length (e.g., 1 minute)
-        chunk_length_ms = 1 * 60 * 1000  # 1 minute in milliseconds
-
+        # Define chunk length (1 minute)
+        chunk_length_ms = 1 * 60 * 1000  #Sets the chunk length to 1 minute (in milliseconds).
         # Split the audio into chunks
         chunks = [audio[i:i + chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
 
         # Directory to save chunks
         os.makedirs("chunks", exist_ok=True)
 
-        # Function to transcribe a chunk using OpenAI API
+        # Function to transcribe a chunk using OpenAI Whisper API
         def transcribe_chunk(chunk, chunk_index):
             chunk_path = f"chunks/chunk_{chunk_index}.wav"
             chunk.export(chunk_path, format="wav")
@@ -46,7 +45,7 @@ def generate_transcript(audio_path):
         
         # Save the final transcription to a file
         transcript_path = os.path.splitext(audio_path)[0] + "_transcript.txt"
-        with open(transcript_path, "w") as f:
+        with open(transcript_path, "w", encoding="utf-8") as f:
             f.write(final_transcription)
         
         print("Transcription completed.")
