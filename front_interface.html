@@ -37,7 +37,7 @@
             margin-bottom: 10px;
         }
         p.description {
-            text-align: center;
+            text-align: justify;
             color: #555;
             font-size: 18px;
             margin-bottom: 20px;
@@ -106,14 +106,24 @@
         .hidden {
             display: none;
         }
+        /* Add this CSS for the hyperlink styling */
+        #download a {
+            color: #1a73e8; /* Blue color */
+            text-decoration: underline;
+            font-weight: bold;
+        }
+        #download a:hover {
+            color: #0c5db5; /* Darker blue on hover */
+        }
     </style>
 </head>
 <body>
     <div class="wrapper">
-        <h1>ScribeBot</h1>
-        <p class="description">ScribeBot is an AI Meeting Assistant that automates the generation and retrieval of meeting minutes.</p>
+        <h1>AI Meeting Assistant</h1>
+        <p class="description">
+            Introducing our AI Meeting Assistant: your ultimate partner in productivity. This intelligent tool automatically generates detailed meeting minutes with unparalleled accuracy, capturing every key discussion and decision. Need to find specific information from past meetings? No problem. Our AI Assistant allows you to effortlessly search and retrieve precise details whenever you need them. Say goodbye to manual note-taking and endless searching—experience the efficiency of having a digital assistant that keeps your meetings organized and your workflow seamless. With our AI Meeting Assistant, you can focus on what truly matters: driving your projects forward.</p>
 
-        <!-- Left Side: Generate Meeting Minutes -->
+       
         <div class="container">
             <h2>Generate Meeting Minutes</h2>
             <form id="uploadForm">
@@ -122,17 +132,15 @@
                 
                 <label for="file">Upload Audio/Video File:</label>
                 <input type="file" id="file" name="file" accept="audio/*,video/*" required>
-                
-                <button type="submit">Upload</button>
             </form>
             <div id="result"></div>
             <button id="generateButton" class="hidden">Generate Minutes</button>
             <div id="download"></div>
         </div>
 
-        <!-- Right Side: Chatbot -->
+
         <div class="container">
-            <h2>Chatbot</h2>
+            <h2>MinuteBot</h2>
             <div id="chatHistory"></div>
             <form id="chatbotForm">
                 <input type="text" id="chatInput" name="chatInput" placeholder="Type your query..." required>
@@ -142,61 +150,53 @@
     </div>
 
     <script>
-        // Upload and Generate Minutes Section
-        document.getElementById('uploadForm').addEventListener('submit', async (event) => {
-            event.preventDefault();
+        // Enable Generate Minutes button after file is selected
+        document.getElementById('file').addEventListener('change', () => {
+            document.getElementById('generateButton').classList.remove('hidden');
+        });
 
+        // Upload and Generate Minutes Section
+        document.getElementById('generateButton').addEventListener('click', async () => {
             const formData = new FormData();
             formData.append('file', document.getElementById('file').files[0]);
             formData.append('meeting_date', document.getElementById('meeting_date').value);
 
-            document.getElementById('result').textContent = 'Uploading file...';
+            document.getElementById('result').textContent = 'Processing...';
 
             try {
-                const response = await fetch('http://127.0.0.1:8000/upload/', {
+                // First, upload the file
+                const uploadResponse = await fetch('http://127.0.0.1:8000/upload/', {
                     method: 'POST',
                     body: formData
                 });
 
-                if (response.ok) {
-                    document.getElementById('result').textContent = 'File uploaded successfully!';
-                    document.getElementById('generateButton').classList.remove('hidden');
+                if (uploadResponse.ok) {
+                    document.getElementById('result').textContent = 'File uploaded successfully. Generating minutes...';
+
+                    // Now, generate the minutes
+                    const generateResponse = await fetch('http://127.0.0.1:8000/generate_minutes/', {
+                        method: 'POST'
+                    });
+
+                    if (generateResponse.ok) {
+                        const result = await generateResponse.json();
+                        document.getElementById('result').textContent = 'Minutes generated successfully!';
+
+                        const downloadDiv = document.getElementById('download');
+                        downloadDiv.innerHTML = ''; // Clear previous links
+
+                        const pdfLink = document.createElement('a');
+                        pdfLink.href = result.pdf_url;
+                        pdfLink.download = `${document.getElementById('meeting_date').value}_minutes.pdf`;
+                        pdfLink.textContent = 'Download Meeting Minutes';
+                        downloadDiv.appendChild(pdfLink);
+                    } else {
+                        const errorText = await generateResponse.text();
+                        document.getElementById('result').textContent = `Minutes generation failed: ${errorText}`;
+                    }
                 } else {
-                    const errorText = await response.text();
+                    const errorText = await uploadResponse.text();
                     document.getElementById('result').textContent = `File upload failed: ${errorText}`;
-                }
-            } catch (error) {
-                document.getElementById('result').textContent = `Error: ${error.message}`;
-            }
-        });
-
-        document.getElementById('generateButton').addEventListener('click', async () => {
-            document.getElementById('result').textContent = 'Generating meeting minutes...';
-
-            try {
-                const response = await fetch('http://127.0.0.1:8000/generate_minutes/', {
-                    method: 'POST'
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    document.getElementById('result').textContent = 'Minutes generated successfully!';
-                    
-                    const downloadDiv = document.getElementById('download');
-                    downloadDiv.innerHTML = ''; // Clear previous links
-
-                    const pdfLink = document.createElement('a');
-                    pdfLink.href = result.pdf_url;
-                    pdfLink.download = `${document.getElementById('meeting_date').value}_minutes.pdf`;
-                    pdfLink.textContent = 'Download Meeting Minutes (PDF)';
-                    pdfLink.style.display = 'block';
-                    pdfLink.style.marginTop = '10px';
-                    pdfLink.style.color = '#4a4a4a';
-                    pdfLink.style.textDecoration = 'none';
-                    downloadDiv.appendChild(pdfLink);
-                } else {
-                    const errorText = await response.text();
-                    document.getElementById('result').textContent = `Minutes generation failed: ${errorText}`;
                 }
             } catch (error) {
                 document.getElementById('result').textContent = `Error: ${error.message}`;
