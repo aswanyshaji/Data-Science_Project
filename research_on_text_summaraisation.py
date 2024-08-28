@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sun Aug 25 12:40:09 2024
 
-@author: aswan
-"""
 
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -147,13 +143,12 @@ def gpt4_summary(text):
     
     return ' '.join(summaries)
 
-# Example usage:
 if __name__ == "__main__":
     # Read the content from the file
     with open("text.txt", "r") as file:
         text = file.read()
 
-    # Read the reference summary from the file
+    # Read the reference summary for analysis.
     with open("refe.txt", "r") as ref_file:
         reference_summary = ref_file.read()
 
@@ -163,7 +158,7 @@ if __name__ == "__main__":
     execution_times = {}
     summaries = {}
 
-    # LexRank Summary
+    # LexRank Summary analysis
     lexrank_result, lexrank_time = measure_time(lexrank_summary, text)
     lexrank_rouge = calculate_rouge(reference_summary, lexrank_result)
     lexrank_meteor = calculate_meteor(reference_summary, lexrank_result)
@@ -172,7 +167,7 @@ if __name__ == "__main__":
     execution_times['LexRank'] = lexrank_time
     summaries['LexRank'] = lexrank_result
     
-    # TextRank Summary
+    # TextRank Summary analysis
     textrank_result, textrank_time = measure_time(textrank_summary, text)
     textrank_rouge = calculate_rouge(reference_summary, textrank_result)
     textrank_meteor = calculate_meteor(reference_summary, textrank_result)
@@ -181,7 +176,7 @@ if __name__ == "__main__":
     execution_times['TextRank'] = textrank_time
     summaries['TextRank'] = textrank_result
     
-    # BART Summary
+    # BART Summary analysis
     bart_result, bart_time = measure_time(bart_summary, text)
     bart_rouge = calculate_rouge(reference_summary, bart_result)
     bart_meteor = calculate_meteor(reference_summary, bart_result)
@@ -190,7 +185,7 @@ if __name__ == "__main__":
     execution_times['BART'] = bart_time
     summaries['BART'] = bart_result
     
-    # T5 Summary
+    # T5 Summary analysis
     t5_result, t5_time = measure_time(t5_summary, text)
     t5_rouge = calculate_rouge(reference_summary, t5_result)
     t5_meteor = calculate_meteor(reference_summary, t5_result)
@@ -199,7 +194,7 @@ if __name__ == "__main__":
     execution_times['T5'] = t5_time
     summaries['T5'] = t5_result
     
-    # GPT-4 Summary
+    # GPT-4 Summary analysis
     gpt4_result, gpt4_time = measure_time(gpt4_summary, text)
     gpt4_rouge = calculate_rouge(reference_summary, gpt4_result)
     gpt4_meteor = calculate_meteor(reference_summary, gpt4_result)
@@ -245,7 +240,6 @@ if __name__ == "__main__":
     ax.set_xticks(x)
     ax.set_xticklabels(models)
     ax.legend(loc='upper left', bbox_to_anchor=(1,1), title="Metrics")  # Adjust legend position
-
     plt.tight_layout()
     plt.show()
 
@@ -256,28 +250,55 @@ if __name__ == "__main__":
     ax.plot(models, times, marker='o')
 
     for i, txt in enumerate(times):
-        ax.annotate(f"{txt:.2f}s", (models[i], times[i]), textcoords="offset points", xytext=(0,-15), ha='center')  # Adjust annotation position
+        ax.annotate(f"{txt:.2f}s", (models[i], times[i]), textcoords= "offset points", xytext=(0,-15), ha='center')  # Adjust annotation position
 
     ax.set_xlabel('Summarization Technique')
     ax.set_ylabel('Time (seconds)')
     ax.set_title('Execution Time by Summarization Technique')
-
     plt.tight_layout()
     plt.show()
-
     # Plot the METEOR scores
     meteor_values = [meteor_scores[model] for model in models]
-
     fig, ax = plt.subplots(figsize=(10, 6))
-    
     bar_width = 0.4
     ax.bar(models, meteor_values, color='orange', width = bar_width)
-
     ax.set_xlabel('Summarization Technique')
     ax.set_ylabel('METEOR Score')
     ax.set_title('METEOR Scores by Summarization Technique')
-
     plt.tight_layout()
     plt.show()
 
-   
+# Calculate and print the percentage improvement in ROUGE-1 F1 scores
+print("\nPercentage Improvement in ROUGE-1 F1 Scores (over LexRank and TextRank):")
+models = ['BART', 'T5', 'GPT-4']
+lexrank_f1 = rouge_scores['LexRank'].fmeasure
+textrank_f1 = rouge_scores['TextRank'].fmeasure
+
+print(f"{'Model':<10} {'LexRank (%)':<15} {'TextRank (%)':<15}")
+for model in models:
+    lexrank_improvement = ((rouge_scores[model].fmeasure - lexrank_f1) / lexrank_f1) * 100
+    textrank_improvement = ((rouge_scores[model].fmeasure - textrank_f1) / textrank_f1) * 100
+    print(f"{model:<10} {lexrank_improvement:<15.2f} {textrank_improvement:<15.2f}")
+
+# Calculate and print the percentage improvement in METEOR scores
+print("\nPercentage Improvement in METEOR Scores (over LexRank and TextRank):")
+lexrank_meteor = meteor_scores['LexRank']
+textrank_meteor = meteor_scores['TextRank']
+
+print(f"{'Model':<10} {'LexRank (%)':<15} {'TextRank (%)':<15}")
+for model in models:
+    lexrank_meteor_improvement = ((meteor_scores[model] - lexrank_meteor) / lexrank_meteor) * 100
+    textrank_meteor_improvement = ((meteor_scores[model] - textrank_meteor) / textrank_meteor) * 100
+    print(f"{model:<10} {lexrank_meteor_improvement:<15.2f} {textrank_meteor_improvement:<15.2f}")
+
+# Calculate how much GPT-4 outperforms BART and T5 in ROUGE-1 F1 scores
+print("\nGPT-4 Performance Comparison in % (ROUGE-1 F1 Score):")
+for model in ['BART', 'T5']:
+    fmeasure_diff = ((rouge_scores['GPT-4'].fmeasure - rouge_scores[model].fmeasure) / rouge_scores[model].fmeasure) * 100
+    print(f"{model} vs GPT-4: F1 Measure Improvement: {fmeasure_diff:.2f}%")
+
+# Calculate how much GPT-4 outperforms BART and T5 in METEOR scores
+print("\nGPT-4 Performance Comparison in % (METEOR Score):")
+for model in ['BART', 'T5']:
+    meteor_diff = ((meteor_scores['GPT-4'] - meteor_scores[model]) / meteor_scores[model]) * 100
+    print(f"{model} vs GPT-4: METEOR Improvement: {meteor_diff:.2f}%")
