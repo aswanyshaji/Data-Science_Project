@@ -280,15 +280,4 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.show()
 
-    # Calculate how much GPT-4 outperforms each of the other models
-    print("\nGPT-4 Performance Comparison:")
-    for model in models[:-1]:  # Exclude GPT-4 itself
-        precision_diff = gpt4_rouge.precision - rouge_scores[model].precision
-        recall_diff = gpt4_rouge.recall - rouge_scores[model].recall
-        fmeasure_diff = gpt4_rouge.fmeasure - rouge_scores[model].fmeasure
-        meteor_diff = gpt4_meteor - meteor_scores[model]
-        print(f"{model} vs GPT-4:")
-        print(f"  Precision: {precision_diff:.4f}")
-        print(f"  Recall: {recall_diff:.4f}")
-        print(f"  F1 Measure: {fmeasure_diff:.4f}")
-        print(f"  METEOR: {meteor_diff:.4f}")
+   
