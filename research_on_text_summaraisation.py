@@ -1,13 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Aug 19 19:19:34 2024
-
-@author: aswan
-"""
-
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Aug 19 18:49:50 2024
+Created on Sun Aug 25 12:40:09 2024
 
 @author: aswan
 """
@@ -15,7 +8,7 @@ Created on Mon Aug 19 18:49:50 2024
 import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import networkx as nx
@@ -26,6 +19,10 @@ from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 import openai
 import os
+import time
+from rouge_score import rouge_scorer
+from nltk.translate.meteor_score import meteor_score
+import matplotlib.pyplot as plt
 
 # Download nltk data
 nltk.download('punkt')
@@ -51,6 +48,26 @@ def split_text(text, max_length):
         chunks.append(current_chunk.strip())
     
     return chunks
+
+# Function to calculate ROUGE-1 scores
+def calculate_rouge(reference, summary):
+    scorer = rouge_scorer.RougeScorer(['rouge1'], use_stemmer=True)
+    scores = scorer.score(reference, summary)
+    return scores['rouge1']
+
+# Function to calculate METEOR score
+def calculate_meteor(reference, summary):
+    reference_tokens = nltk.word_tokenize(reference)
+    summary_tokens = nltk.word_tokenize(summary)
+    return meteor_score([reference_tokens], summary_tokens)
+
+# Function to measure execution time
+def measure_time(func, *args):
+    start_time = time.time()
+    result = func(*args)
+    end_time = time.time()
+    execution_time = end_time - start_time
+    return result, execution_time
 
 # Function for LexRank Summarization using sumy
 def lexrank_summary(text, num_sentences=10):
@@ -112,6 +129,7 @@ def t5_summary(text):
         summaries.append(t5_tokenizer.decode(summary_ids[0], skip_special_tokens=True))
     
     return ' '.join(summaries)
+
 # Function for GPT-4 Summarization
 def gpt4_summary(text):
     chunks = split_text(text, 4096)  # Split text into chunks that GPT-4 can handle
@@ -135,27 +153,142 @@ if __name__ == "__main__":
     with open("text.txt", "r") as file:
         text = file.read()
 
+    # Read the reference summary from the file
+    with open("refe.txt", "r") as ref_file:
+        reference_summary = ref_file.read()
+
+    # Dictionaries to store results
+    rouge_scores = {}
+    meteor_scores = {}
+    execution_times = {}
+    summaries = {}
+
     # LexRank Summary
-    lexrank_result = lexrank_summary(text)
-    print("LexRank Summary:")
-    print(lexrank_result)
+    lexrank_result, lexrank_time = measure_time(lexrank_summary, text)
+    lexrank_rouge = calculate_rouge(reference_summary, lexrank_result)
+    lexrank_meteor = calculate_meteor(reference_summary, lexrank_result)
+    rouge_scores['LexRank'] = lexrank_rouge
+    meteor_scores['LexRank'] = lexrank_meteor
+    execution_times['LexRank'] = lexrank_time
+    summaries['LexRank'] = lexrank_result
     
     # TextRank Summary
-    textrank_result = textrank_summary(text)
-    print("\nTextRank Summary:")
-    print(textrank_result)
+    textrank_result, textrank_time = measure_time(textrank_summary, text)
+    textrank_rouge = calculate_rouge(reference_summary, textrank_result)
+    textrank_meteor = calculate_meteor(reference_summary, textrank_result)
+    rouge_scores['TextRank'] = textrank_rouge
+    meteor_scores['TextRank'] = textrank_meteor
+    execution_times['TextRank'] = textrank_time
+    summaries['TextRank'] = textrank_result
     
     # BART Summary
-    bart_result = bart_summary(text)
-    print("\nBART Summary:")
-    print(bart_result)
+    bart_result, bart_time = measure_time(bart_summary, text)
+    bart_rouge = calculate_rouge(reference_summary, bart_result)
+    bart_meteor = calculate_meteor(reference_summary, bart_result)
+    rouge_scores['BART'] = bart_rouge
+    meteor_scores['BART'] = bart_meteor
+    execution_times['BART'] = bart_time
+    summaries['BART'] = bart_result
     
     # T5 Summary
-    t5_result = t5_summary(text)
-    print("\nT5 Summary:")
-    print(t5_result)
+    t5_result, t5_time = measure_time(t5_summary, text)
+    t5_rouge = calculate_rouge(reference_summary, t5_result)
+    t5_meteor = calculate_meteor(reference_summary, t5_result)
+    rouge_scores['T5'] = t5_rouge
+    meteor_scores['T5'] = t5_meteor
+    execution_times['T5'] = t5_time
+    summaries['T5'] = t5_result
     
     # GPT-4 Summary
-    gpt4_result = gpt4_summary(text)
-    print("\nGPT-4 Summary:")
-    print(gpt4_result)
+    gpt4_result, gpt4_time = measure_time(gpt4_summary, text)
+    gpt4_rouge = calculate_rouge(reference_summary, gpt4_result)
+    gpt4_meteor = calculate_meteor(reference_summary, gpt4_result)
+    rouge_scores['GPT-4'] = gpt4_rouge
+    meteor_scores['GPT-4'] = gpt4_meteor
+    execution_times['GPT-4'] = gpt4_time
+    summaries['GPT-4'] = gpt4_result
+    
+    # Print the summaries and response times
+    print("\nSummaries and Response Times:")
+    for model in summaries:
+        print(f"\n{model} Summary:")
+        print(summaries[model])
+        print(f"Execution Time: {execution_times[model]:.2f} seconds")
+
+    # Print the ROUGE-1 scores
+    print("\nROUGE-1 Scores:")
+    for model, scores in rouge_scores.items():
+        print(f"{model}: Precision: {scores.precision:.4f}, Recall: {scores.recall:.4f}, F1: {scores.fmeasure:.4f}")
+    
+    # Print the METEOR scores
+    print("\nMETEOR Scores:")
+    for model, score in meteor_scores.items():
+        print(f"{model}: METEOR: {score:.4f}")
+
+    # Plot the ROUGE-1 scores
+    models = list(rouge_scores.keys())
+    precisions = [rouge_scores[model].precision for model in models]
+    recalls = [rouge_scores[model].recall for model in models]
+    fmeasures = [rouge_scores[model].fmeasure for model in models]
+
+    x = np.arange(len(models))  # the label locations
+    width = 0.2  # the width of the bars
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.bar(x - width, precisions, width, label='Precision')
+    ax.bar(x, recalls, width, label='Recall')
+    ax.bar(x + width, fmeasures, width, label='F1 Measure')
+
+    ax.set_xlabel('Summarization Technique')
+    ax.set_ylabel('ROUGE-1 Score')
+    ax.set_title('ROUGE-1 Scores by Summarization Technique')
+    ax.set_xticks(x)
+    ax.set_xticklabels(models)
+    ax.legend(loc='upper left', bbox_to_anchor=(1,1), title="Metrics")  # Adjust legend position
+
+    plt.tight_layout()
+    plt.show()
+
+    # Plot the execution times
+    times = [execution_times[model] for model in models]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(models, times, marker='o')
+
+    for i, txt in enumerate(times):
+        ax.annotate(f"{txt:.2f}s", (models[i], times[i]), textcoords="offset points", xytext=(0,-15), ha='center')  # Adjust annotation position
+
+    ax.set_xlabel('Summarization Technique')
+    ax.set_ylabel('Time (seconds)')
+    ax.set_title('Execution Time by Summarization Technique')
+
+    plt.tight_layout()
+    plt.show()
+
+    # Plot the METEOR scores
+    meteor_values = [meteor_scores[model] for model in models]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    bar_width = 0.4
+    ax.bar(models, meteor_values, color='orange', width = bar_width)
+
+    ax.set_xlabel('Summarization Technique')
+    ax.set_ylabel('METEOR Score')
+    ax.set_title('METEOR Scores by Summarization Technique')
+
+    plt.tight_layout()
+    plt.show()
+
+    # Calculate how much GPT-4 outperforms each of the other models
+    print("\nGPT-4 Performance Comparison:")
+    for model in models[:-1]:  # Exclude GPT-4 itself
+        precision_diff = gpt4_rouge.precision - rouge_scores[model].precision
+        recall_diff = gpt4_rouge.recall - rouge_scores[model].recall
+        fmeasure_diff = gpt4_rouge.fmeasure - rouge_scores[model].fmeasure
+        meteor_diff = gpt4_meteor - meteor_scores[model]
+        print(f"{model} vs GPT-4:")
+        print(f"  Precision: {precision_diff:.4f}")
+        print(f"  Recall: {recall_diff:.4f}")
+        print(f"  F1 Measure: {fmeasure_diff:.4f}")
+        print(f"  METEOR: {meteor_diff:.4f}")
